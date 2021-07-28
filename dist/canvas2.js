@@ -7,9 +7,13 @@ var DrawingCanvas = /** @class */ (function () {
         this._canvasID = DrawingCanvas._canvasNumber;
         DrawingCanvas._canvasNumber = DrawingCanvas._canvasNumber++;
         this.context = this.canvas.getContext('2d');
-        this.boundingDiv = document.createElement('div');
-        this.boundingDiv.setAttribute('id', 'drawing-canvas-' + DrawingCanvas._canvasNumber + 'bounding-div');
-        this.boundingDiv.appendChild(this.canvas);
+        this.layoutTable = document.createElement('table');
+        this.layoutTable.createTHead();
+        this.layoutTable.insertRow();
+        this.layoutTable.createTFoot();
+        this.layoutTable.rows[0].appendChild(document.createElement('td'));
+        this.layoutTable.rows[0].appendChild(document.createElement('td'));
+        this.layoutTable.rows[0].appendChild(document.createElement('td'));
         this.currentAction = 'draw';
         this.drawings = new Array();
         this.currentPoint = undefined;
@@ -34,6 +38,7 @@ var DrawingCanvas = /** @class */ (function () {
             throw 'addToolbar not given valid side: top, bottom, left, right';
         }
         var newToolbar = document.createElement('div');
+        newToolbar.setAttribute('style', '');
         switch (side) {
             case 'top':
                 break;
@@ -44,6 +49,7 @@ var DrawingCanvas = /** @class */ (function () {
             case 'right':
                 break;
         }
+        this.boundingDiv.appendChild(newToolbar);
     };
     DrawingCanvas.prototype.addButton = function (funct, side, img) {
         var _this = this;

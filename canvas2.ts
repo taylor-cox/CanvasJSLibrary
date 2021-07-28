@@ -10,7 +10,7 @@ interface Drawing {
 class DrawingCanvas {
   private canvas: HTMLCanvasElement;
   private context: CanvasRenderingContext2D;
-  private boundingDiv: HTMLDivElement;
+  private layoutTable: HTMLTableElement;
   private leftToolbar: HTMLDivElement;
   private topToolbar: HTMLDivElement;
   private bottomToolbar: HTMLDivElement;
@@ -33,9 +33,14 @@ class DrawingCanvas {
     this._canvasID = DrawingCanvas._canvasNumber;
     DrawingCanvas._canvasNumber = DrawingCanvas._canvasNumber++;
     this.context = this.canvas.getContext('2d');
-    this.boundingDiv = document.createElement('div');
-    this.boundingDiv.setAttribute('id', 'drawing-canvas-' + DrawingCanvas._canvasNumber + 'bounding-div');
-    this.boundingDiv.appendChild(this.canvas);
+    this.layoutTable = document.createElement('table');
+    this.layoutTable.createTHead();
+    this.layoutTable.insertRow();
+    this.layoutTable.createTFoot();
+    this.layoutTable.rows[0].appendChild(document.createElement('td'));
+    this.layoutTable.rows[0].appendChild(document.createElement('td'));
+    this.layoutTable.rows[0].appendChild(document.createElement('td'));
+    
     this.currentAction = 'draw';
     this.drawings = new Array<Drawing>();
     this.currentPoint = undefined;
@@ -65,6 +70,7 @@ class DrawingCanvas {
     }
 
     let newToolbar = document.createElement('div');
+    newToolbar.setAttribute('style', '');
     switch(side) {
       case 'top':
         break;
@@ -75,6 +81,7 @@ class DrawingCanvas {
       case 'right':
         break;
     }
+    this.boundingDiv.appendChild(newToolbar);
   }
 
   addButton(funct: string, side: string, img: string): void {
