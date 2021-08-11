@@ -1,70 +1,90 @@
-/*
-// Drawing canvas number tracker
-var _drawi_cavas_nube = 0;
-
+// Start implementation with tool width
 interface Point {
   x: number;
   y: number;
+  color: string;
 }
 
-interface Drawing {
+interface HandDrawnLine {
+  type: 'hand_drawn_line';
   points: Array<Point>;
-  sortedPoints: Array<Point>;
+  color: string;
 }
 
-enum Direction {
-  Up = 1,
-  Down,
-  Left,
-  Right
+interface Line {
+  type: 'line';
+  start: Point;
+  end: Point;
+  color: string;
 }
+
+interface Circle {
+  type: 'circle';
+  center: Point;
+  radius: number;
+  color: string;
+}
+
+interface Box {
+  type: 'box';
+  start: Point;
+  width: number;
+  height: number;
+  color: string;
+}
+
+type Drawing = Box | Circle | Line | HandDrawnLine;
 
 class DrawingCanvas {
-  canvas: HTMLCanvasElement;
-  context: CanvasRenderingContext2D;
-  boundingDiv: HTMLDivElement;
-  leftToolbar: HTMLDivElement;
-  topToolbar: HTMLDivElement;
-  bottomToolbar: HTMLDivElement;
-  rightToolbar: HTMLDivElement;
+  // DOM variables
+  private canvas: HTMLCanvasElement;
+  private context: CanvasRenderingContext2D;
+  private layoutTable: HTMLTableElement;
+  private leftToolbar: HTMLDivElement;
+  private topToolbar: HTMLDivElement;
+  private bottomToolbar: HTMLDivElement;
+  private rightToolbar: HTMLDivElement;
   
-  currentAction: String;
-  drawings: Array<Drawing>;
-  currentDrawing: Drawing;
-  lineWidth: number;
-  drawingToggle: boolean; // For circle, box and line
-  strokeColor: string;
+  // State variables
+  private currentAction: string;
+  private lineWidth: number;
+  
+  // Drawing variables
   private currentPoint: Point;
   private lastPoint: Point;
+  private drawings: Array<Drawing>;
+  private currentDrawing: Drawing;
+  private static _canvasNumber: number = 0;
+  private _canvasID: number;
   private mouseDownFlag: Boolean;
   
   constructor() {
-    // Variable initialization
+    // Bounding div initialization; for widget bars and canvas
     this.canvas = document.createElement('canvas');
-    this._canvasNumber = _drawi_cavas_nube;
-    this.canvas.setAttribute('id', 'drawing-canvas-' + _drawi_cavas_nube++);
+    this.canvas.setAttribute('id', 'drawing-canvas-' + DrawingCanvas._canvasNumber);
+    this._canvasID = DrawingCanvas._canvasNumber;
+    DrawingCanvas._canvasNumber += 1;
     this.context = this.canvas.getContext('2d');
-    this.boundingDiv = document.createElement('div');
-    this.leftToolbar = document.createElement('div');
-    this.topToolbar = document.createElement('div');
-    this.bottomToolbar = document.createElement('div');
-    this.rightToolbar = document.createElement('div');
-    this.boundingDiv.appendChild(this.canvas);
-    this.boundingDiv.appendChild(this.leftToolbar);
-    this.boundingDiv.appendChild(this.topToolbar);
-    this.boundingDiv.appendChild(this.bottomToolbar);
-    this.boundingDiv.appendChild(this.rightToolbar);
+    this.layoutTable = document.createElement('table');
+    this.layoutTable.createTHead();
+    let tableHeader = document.createElement('td');
+    tableHeader.setAttribute('colspan', '3');
+    this.layoutTable.tHead.appendChild(tableHeader);
+    this.layoutTable.insertRow();
+    this.layoutTable.rows[0].appendChild(document.createElement('td'));
+    this.layoutTable.rows[0].appendChild(document.createElement('td'));
+    this.layoutTable.rows[0].appendChild(document.createElement('td'));
+    this.layoutTable.createTFoot();
+    let tableFooter = document.createElement('td');
+    tableFooter.setAttribute('colspan', '3');
+    this.layoutTable.tFoot.appendChild(tableFooter);
+    this.layoutTable.rows[0].cells[1].appendChild(this.canvas);
+    
     this.currentAction = 'draw';
     this.drawings = new Array<Drawing>();
-    this.currentPoint = {x: -1, y: -1};
-    this.lastPoint = {x: -1, y: -1};
-    this.drawingToggle = true;
-    this.strokeColor = 'black';
-    this.currentDrawing = {points: Array<Point>(), sortedPoints: Array<Point>()};
-    
-    // Canvas initialization
-    this.canvas.width = this.canvas.getBoundingClientRect().width;
-    this.canvas.height = this.canvas.getBoundingClientRect().height;
+    this.currentPoint = {x: null, y: null, color: null};
+    this.lastPoint = {x: null, y: null, color: null};
+    this.currentDrawing = {points: Array<Point>(), type: null, color: null};
     
     this.canvas.addEventListener("mousemove", (e) => this.findxy(e), false);
     this.canvas.addEventListener("mousedown", (e) => this.findxy(e), false);
@@ -72,6 +92,12 @@ class DrawingCanvas {
     this.canvas.addEventListener("mouseout", (e) => this.findxy(e), false);
   }
   
+  // Access Functions ===========================================================================
+  appendDrawingCanvasToElement(elem: HTMLElement): void {
+    elem.appendChild(this.layoutTable);
+  }
+  
+  // Canvas Modifying Functions =================================================================
   setCanvasWidth(w: number): void {
     this.canvas.width = w;
   }
@@ -80,307 +106,412 @@ class DrawingCanvas {
     this.canvas.height = h;
   }
   
-  addButton(funct: string, side: Direction, img: string) {
+  // Toolbar Modifying Functions ================================================================
+  addToolbar(side: string): void {
+    let validSides = ['top', 'bottom', 'left', 'right'];
+    if(!validSides.includes(side)) {
+      throw 'addToolbar not given valid side' + validSides;
+    }
+    
+    let newToolbar = document.createElement('div');
+    // TODO: flex container for left and right columns
+    newToolbar.setAttribute('id', 'drawing-canvas-' + this._canvasID + '-' + side + '-toolbar');
+    
+    switch(side) {
+      case 'top':
+      this.topToolbar = newToolbar;
+      this.layoutTable.tHead.getElementsByTagName('td')[0].appendChild(newToolbar);
+      break;
+      case 'bottom':
+      this.bottomToolbar = newToolbar;
+      this.layoutTable.tFoot.getElementsByTagName('td')[0].appendChild(newToolbar);
+      break;
+      case 'left':
+      this.leftToolbar = newToolbar;
+      this.layoutTable.rows[0].getElementsByTagName('td')[0].appendChild(newToolbar);
+      break;
+      case 'right':
+      this.bottomToolbar = newToolbar;
+      this.layoutTable.rows[0].getElementsByTagName('td')[2].appendChild(newToolbar);
+      break;
+    }
+  }
+  
+  addButton(funct: string, side: string, img: string): void {
     // Adds a button to one of the sides
+    
+    // Checks for parameter input errors
+    let validSides = ['top', 'bottom', 'left', 'right'];
+    if(!validSides.includes(side)) {
+      throw 'addButton not given valid side; sides are' + validSides;
+    }
+    let validActions = ['draw', 'circle', 'line', 'box', 'clear', 'erase'];
+    if(!validActions.includes(funct)) {
+      throw 'allowable action not set for button; actions are ' + validActions;
+    }
+    
     let newButton = document.createElement('button');
-    newButton.onclick = () => this.setCurrentAction(funct);
-    newButton.id = 'drawing-canvas-button' + this._canvasNumber + funct;
+    if(funct === 'clear') newButton.onclick = () => this.resetCanvas();
+    else newButton.onclick = () => this.setCurrentAction(funct);
+    newButton.id = 'drawing-canvas-button' + this._canvasID + '-' + funct;
+    
     if(img != null) {
       let buttonImg = document.createElement('img');
       buttonImg.src = img;
       newButton.appendChild(buttonImg);
     }
+    
     switch(side) {
-      case Direction.Up:
+      case 'top':
       this.topToolbar.appendChild(newButton);
       break;
-      case Direction.Down:
+      case 'bottom':
       this.bottomToolbar.appendChild(newButton);
       break;
-      case Direction.Left:
+      case 'left':
       this.leftToolbar.appendChild(newButton);
       break;
-      case Direction.Right:
+      case 'right':
       this.rightToolbar.appendChild(newButton);
       break;
     }
   }
-  
-  addClearButton(side: Direction, img: string) {
-    let newButton = document.createElement('button');
-    newButton.onclick = () => this.clearCanvas();
-    newButton.id = 'drawing-canvas-button' + this._canvasNumber + 'clear';
-    if(img != null) {
-      let buttonImg = document.createElement('img');
-      buttonImg.src = img;
-      newButton.appendChild(buttonImg);
+
+  addElementToToolbar(elem: HTMLElement, side: string) {
+    let validSides = ['top', 'bottom', 'left', 'right'];
+    if(!validSides.includes(side)) {
+      throw 'addButton not given valid side; sides are' + validSides;
     }
+
     switch(side) {
-      case Direction.Up:
-      this.topToolbar.appendChild(newButton);
+      case 'top':
+      this.topToolbar.appendChild(elem);
       break;
-      case Direction.Down:
-      this.bottomToolbar.appendChild(newButton);
+      case 'bottom':
+      this.bottomToolbar.appendChild(elem);
       break;
-      case Direction.Left:
-      this.leftToolbar.appendChild(newButton);
+      case 'left':
+      this.leftToolbar.appendChild(elem);
       break;
-      case Direction.Right:
-      this.rightToolbar.appendChild(newButton);
+      case 'right':
+      this.rightToolbar.appendChild(elem);
       break;
     }
   }
   
-  addColorWheel(side: Direction): void {
+  addColorWheel(side: string): void {
     let newColorWheel = document.createElement('input');
     newColorWheel.setAttribute('type', 'color');
+    newColorWheel.id = 'drawing-canvas-button-' + this._canvasID + '-color-wheel';
     
-    newColorWheel.id = 'drawing-canvas-button' + this._canvasNumber + 'color-wheel';
     switch(side) {
-      case Direction.Up:
+      case 'top':
       this.topToolbar.appendChild(newColorWheel);
       break;
-      case Direction.Down:
+      case 'bottom':
       this.bottomToolbar.appendChild(newColorWheel);
       break;
-      case Direction.Left:
+      case 'left':
       this.leftToolbar.appendChild(newColorWheel);
       break;
-      case Direction.Right:
+      case 'right':
       this.rightToolbar.appendChild(newColorWheel);
       break;
     }
   }
-  
-  // ====================== DRAWING TOOLS ======================
-  setCurrentAction(action: string): void {
-    var possibleActions = ['circle', 'draw', 'line', 'box', 'erase'];
-    if(!possibleActions.includes(action)) return;
-    this.currentAction = action;
-  }
-  
-  clearCanvas(): void {
-    this.drawings = Array<Drawing>();
-    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.drawingToggle = false;
-  }
-  
-  drawPoint(point: Point): void {
-    this.currentDrawing.points.push(this.currentPoint);
+
+  addSlider(side: string): void {
+    let sliderDiv = document.createElement('div');
+    let newSlider = document.createElement('input');
+    let sliderValue = document.createElement('p');
+    newSlider.setAttribute('type', 'range');
+    newSlider.id = 'drawing-canvas-button-' + this._canvasID + '-slider';
+    newSlider.setAttribute('min', '1');
+    newSlider.setAttribute('max', '10');
+    newSlider.setAttribute('value', '2');
+    sliderValue.innerHTML = newSlider.value;
+    newSlider.oninput = () => { 
+      sliderValue.innerHTML = newSlider.value; 
+      this.lineWidth = +newSlider.value;
+    };
+
+    sliderDiv.appendChild(newSlider);
+    sliderDiv.appendChild(sliderValue);
     
-    // Draws point
-    this.context.beginPath();
-    this.context.fillStyle = (document.getElementById('drawing-canvas-button' + this._canvasNumber + 'color-wheel') as HTMLInputElement).value;
-    this.context.fillRect(point.x, point.y, this.lineWidth, this.lineWidth);
-    this.context.closePath();
-  }
-  
-  drawLine(pp: Point, cp: Point): void {
-    this.context.beginPath();
-    this.context.moveTo(pp.x, pp.y);
-    this.context.lineTo(cp.x, cp.y);
-    this.context.strokeStyle = (document.getElementById('drawing-canvas-button' + this._canvasNumber + 'color-wheel') as HTMLInputElement).value;
-    this.context.lineWidth = this.lineWidth;
-    this.context.stroke();
-    this.context.closePath();
-  }
-  
-  drawDrawing(drawing: Drawing): void {
-    var p_point = {x: -1, y: -1};
-    drawing.points.forEach(point => {
-      if(p_point.x == -1 || p_point.y == -1) {
-        this.drawPoint(point);
-        p_point.x = point.x, p_point.y = point.y;
-      } else {
-        this.drawLine(p_point, point);
-        p_point.x = point.x, p_point.y = point.y;
-      }
-    });
-  }
-  
-  drawDrawings(): void {
-    this.drawings.forEach((drawing) => this.drawDrawing(drawing));
-  }
-  
-  draw() {
-    this.currentDrawing.points.push(this.currentPoint);
-    
-    // Draws line
-    this.context.beginPath();
-    this.context.moveTo(this.lastPoint.x, this.lastPoint.y);
-    this.context.lineTo(this.currentPoint.x, this.currentPoint.y);
-    this.context.strokeStyle = (document.getElementById('drawing-canvas-button' + this._canvasNumber + 'color-wheel') as HTMLInputElement).value;
-    this.context.lineWidth = this.lineWidth;
-    this.context.stroke();
-    this.context.closePath();
-  }
-  
-  redrawCanvas() {
-    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.drawDrawings();
-  }
-  
-  __searchRange(arr, target, start_index=0, end_index=arr.length-1) {
-    var upperLowerBounds = [];
-    upperLowerBounds.push(this.__leftmost(arr, start_index, end_index, target));
-    upperLowerBounds.push(this.__rightmost(arr, start_index, end_index, target));
-    return upperLowerBounds;
-  }
-  // Binary search function for leftmost target
-  __leftmost(array, min, max, target) {
-    if (min == max) return min;
-    var mid = Math.floor((min + max) / 2);
-    if (array[mid] < target) return this.__leftmost(array, mid + 1, max, target);
-    else return this.__leftmost(array, min, mid, target);
-  }
-  // Binary search function for rightmost target
-  __rightmost(array, min, max, target)
-  {
-    if (min == max) return min;
-    var mid = Math.floor((min + max + 1) / 2);
-    if (array[mid] > target) return this.__rightmost(array, min, mid - 1, target);
-    else return this.__rightmost(array, mid, max, target);
-  }
-  // Figures out if a number is between to values
-  __between(x, min, max) {
-    return x >= min && x <= max;
-  }
-  
-  erase() {
-    var toRemove = [];
-    // BINARY SEACH IMPLEMENTATION: NOT WORKING
-    // lines.forEach(line => {
-    //   if(line.line.length == 0) return;
-    //   var xRange = searchRange(line.sortedLine.map(point => point[0]), Math.floor(x));
-    //   // var yRange = searchRange(line.sortedLine.map(point => point[1]), Math.floor(y), xRange[0], xRange[1]);
-    //   // var range = [Math.min(xRange[0], yRange[0]), Math.max(xRange[1], yRange[1])];
-    //   var range = xRange;
-    //   for(var i = range[0]; i <= range[1]; i++)
-    //     if(between(Math.floor(x), line.sortedLine[i][0] - 10, line.sortedLine[i][0] + 10) && between(Math.floor(y), line.sortedLine[i][1] - 10, line.sortedLine[i][1] + 10)) toRemove.push(line);
-    // });
-    this.drawings.forEach(drawing =>{
-      if(drawing.points.length == 0) return;
-      drawing.points.forEach(point => {
-        if(this.__between(point[0], Math.min(this.lastPoint.x, this.currentPoint.x), Math.max(this.lastPoint.x, this.currentPoint.x)) &&
-        this.__between(point[1], Math.min(this.lastPoint.y, this.currentPoint.y), Math.max(this.lastPoint.x, this.currentPoint.x))) {
-          toRemove.push(drawing);
-        }
-      });
-    });
-    var beforeLength = this.drawings.length;
-    this.drawings = this.drawings.filter((el) => !toRemove.includes(el));
-    if(beforeLength != this.drawings.length) {
-      this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-      this.drawDrawings();
+    switch(side) {
+      case 'top':
+      this.topToolbar.appendChild(sliderDiv);
+      break;
+      case 'bottom':
+      this.bottomToolbar.appendChild(sliderDiv);
+      break;
+      case 'left':
+      this.leftToolbar.appendChild(sliderDiv);
+      break;
+      case 'right':
+      this.rightToolbar.appendChild(sliderDiv);
+      break;
     }
+
   }
   
-  __distance(p1: Point, p2: Point) {
-    return Math.sqrt((p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y));
+  // TODO: Allow users to create custom buttons; implicit functions, image, pass in button
+  
+  // State Changing Functions ===================================================================
+  setCurrentAction(funct: string) {
+    this.currentAction = funct;
   }
   
-  circle() {
-    this.context.beginPath();
-    console.log(this.__distance(this.lastPoint, this.currentPoint));
-    this.context.arc(this.lastPoint.x, this.lastPoint.y, this.__distance(this.lastPoint, this.currentPoint), 0, 2 * Math.PI);
-    this.context.strokeStyle = (document.getElementById('drawing-canvas-button' + this._canvasNumber + 'color-wheel') as HTMLInputElement).value;
-    this.context.lineWidth = this.lineWidth;
-    this.context.stroke();
-    this.context.closePath();
-  }
-  
-  box() {
-    this.context.beginPath();
-    this.context.rect(this.lastPoint.x, this.lastPoint.y, this.currentPoint.x - this.lastPoint.x, this.currentPoint.y - this.lastPoint.y);
-    this.context.strokeStyle = (document.getElementById('drawing-canvas-button' + this._canvasNumber + 'color-wheel') as HTMLInputElement).value;
-    this.context.lineWidth = this.lineWidth;
-    this.context.stroke();
-    this.context.closePath();
-  }
-  
-  attachToElement(elem: HTMLElement): void {
-    elem.appendChild(this.boundingDiv);
-  }
-  
-  getBoundingDiv() {
-    return this.boundingDiv;
-  }
-  
-  findxy(e): void {
-    if (e.type === 'mousedown') {
-      this.mouseDownFlag = true;
-      if(this.currentAction == 'draw') { 
-        this.currentPoint.x = Math.floor(e.clientX);
-        this.currentPoint.y = Math.floor(e.clientY);
-        this.lastPoint.x = this.currentPoint.x;
-        this.lastPoint.y = this.currentPoint.y;
-        this.drawPoint(this.currentPoint);
+  // Event Listener Helper Function ============================================================
+  findxy(e: MouseEvent): void {
+    if(e.type === 'mouseout') {
+      if(this.currentAction !== 'erase' && this.mouseDownFlag) {
+        console.log('saving drawing: ', this.currentDrawing);
+        this.drawings.push(this.currentDrawing);
+        this.currentDrawing = undefined;
       }
-      else if(this.currentAction == 'line') {
-        this.currentPoint.x = Math.floor(e.clientX);
-        this.currentPoint.y = Math.floor(e.clientY);
-        this.lastPoint.x = this.currentPoint.x;
-        this.lastPoint.y = this.currentPoint.y;
-        this.drawLine(this.lastPoint, this.currentPoint);
+      this.mouseDownFlag = false;
+    }
+    
+    if (e.type === 'mousedown') {
+      this.currentPoint.x = Math.floor(e.clientX - this.__getTableDialogRect().x);
+      this.currentPoint.y = Math.floor(e.clientY - this.__getTableDialogRect().y);
+      let color: string = (document.getElementById('drawing-canvas-button-' + this._canvasID + '-color-wheel') as HTMLInputElement).value;
+      this.currentPoint.color = color;
+      this.lastPoint = {x: this.currentPoint.x, y: this.currentPoint.y, color: (document.getElementById('drawing-canvas-button-' + this._canvasID + '-color-wheel') as HTMLInputElement).value};
+      this.mouseDownFlag = true;
+      
+      if(this.currentAction == 'draw') {
+        this.currentDrawing = {type: 'hand_drawn_line', points: Array<Point>(), color: color} as HandDrawnLine;
+        (this.currentDrawing as HandDrawnLine).points.push(JSON.parse(JSON.stringify(this.currentPoint)));
+        this.drawPoint(this.currentPoint);
+      } else if(this.currentAction == 'line') {
+        this.currentDrawing = {type: 'line', start: JSON.parse(JSON.stringify(this.currentPoint)), end: undefined, color: color} as Line;
       } else if (this.currentAction == 'circle') {
-        this.currentPoint.x = Math.floor(e.clientX);
-        this.currentPoint.y = Math.floor(e.clientY);
-        this.lastPoint.x = this.currentPoint.x;
-        this.lastPoint.y = this.currentPoint.y;
-        this.circle();
+        this.currentDrawing = {type: 'circle', center: JSON.parse(JSON.stringify(this.currentPoint)), radius: undefined, color: color} as Circle;
+      } else if (this.currentAction == 'box') {
+        this.currentDrawing = {type: 'box', start: JSON.parse(JSON.stringify(this.currentPoint)), width: undefined, height: undefined, color: color} as Box;
+      } else if (this.currentAction == 'erase') {
+        this.erase();
       }
     }
     
     if (e.type === 'mouseup') {
       this.mouseDownFlag = false;
-      
-      // Sorts coordinates by x then y
-      var sortedDrawing = JSON.parse(JSON.stringify(this.currentDrawing));
-      sortedDrawing.points.sort((a, b) => {
-        if(a.x == b.x) return a.y - b.y;
-        return a.x - b.x;
-      });
-
-      var newDrawing = {points: this.currentDrawing.points, sortedPoints: sortedDrawing.points};
-      this.drawings.push(newDrawing);
-      this.currentDrawing = {points: Array<Point>(), sortedPoints: Array<Point>()};
+      if(this.currentAction !== 'erase') {
+        console.log('saving drawing: ', this.currentDrawing);
+        this.drawings.push(this.currentDrawing);
+        this.currentDrawing = undefined;
+      }
     }
     
     if (e.type === 'mousemove') {
+      this.lastPoint = JSON.parse(JSON.stringify(this.currentPoint));
+      this.currentPoint.x = Math.floor(e.clientX - this.__getTableDialogRect().x);
+      this.currentPoint.y = Math.floor(e.clientY - this.__getTableDialogRect().y);
       if (this.mouseDownFlag) {
         if(this.currentAction == 'draw') { 
-          this.lastPoint.x = this.currentPoint.x;
-          this.lastPoint.y = this.currentPoint.y;
-          this.currentPoint.x = Math.floor(e.clientX);
-          this.currentPoint.y = Math.floor(e.clientY);
-          this.draw(); 
+          (this.currentDrawing as HandDrawnLine).points.push(JSON.parse(JSON.stringify(this.currentPoint)));
+          this.drawLine({type: 'line', start: this.lastPoint, end: this.currentPoint, color: this.currentDrawing.color}); 
         } else if(this.currentAction == 'erase') { 
-          this.erase(); 
+          this.erase();
         } else if(this.currentAction == 'line') {
           this.redrawCanvas();
-          this.currentPoint.x = Math.floor(e.clientX);
-          this.currentPoint.y = Math.floor(e.clientY);
-          var line = {points: Array<Point>(), sortedLine: Array<Point>()};
-          line.points.push(this.lastPoint);
-          line.points.push(this.currentPoint);
-          this.drawLine(this.lastPoint, this.currentPoint);
+          (this.currentDrawing as Line).end = JSON.parse(JSON.stringify(this.currentPoint));
+          this.drawLine(this.currentDrawing as Line);
         } else if(this.currentAction == 'circle') {
           this.redrawCanvas();
-          this.currentPoint.x = Math.floor(e.clientX);
-          this.currentPoint.y = Math.floor(e.clientY);
-          this.circle();
+          (this.currentDrawing as Circle).radius = this.__distance(this.currentPoint, (this.currentDrawing as Circle).center)
+          this.drawCircle(this.currentDrawing as Circle);
         } else if(this.currentAction == 'box') {
-          this.box();
-        } else if(this.currentAction == 'line' && !this.drawingToggle) {
-          this.currentPoint.x = Math.floor(e.clientX);
-          this.currentPoint.y = Math.floor(e.clientY);
-          var line = {points: Array<Point>(), sortedLine: Array<Point>()};
-          line.points.push(this.lastPoint);
-          line.points.push(this.currentPoint);
-          this.drawLine(this.lastPoint, this.currentPoint);
+          this.redrawCanvas();
+          (this.currentDrawing as Box).width = (this.currentPoint.x - (this.currentDrawing as Box).start.x);
+          (this.currentDrawing as Box).height = (this.currentPoint.y - (this.currentDrawing as Box).start.y);
+          this.drawBox(this.currentDrawing as Box);
         }
       }
     }
   }
+  
+  // Drawing Helper Functions ===================================================================
+  //------------------
+  // Drawing functions
+  //------------------
+  drawPoint(point: Point): void {
+    this.context.beginPath();
+    this.context.fillStyle = point.color;
+    this.context.fillRect(point.x, point.y, this.lineWidth, this.lineWidth);
+    this.context.closePath();
+  }
+  
+  drawLine(line: Line): void {
+    // Used when drawing line and hand drawn line
+    this.context.lineCap = 'round';
+    this.context.beginPath();
+    this.context.moveTo(line.start.x, line.start.y);
+    this.context.lineTo(line.end.x, line.end.y);
+    this.context.strokeStyle = line.color;
+    this.context.lineWidth = this.lineWidth;
+    this.context.stroke();
+    this.context.closePath();
+  }
+  
+  drawBox(box: Box) {
+    this.context.beginPath();
+    this.context.rect(box.start.x, box.start.y, box.width, box.height);
+    this.context.strokeStyle = box.color;
+    this.context.lineWidth = this.lineWidth;
+    this.context.stroke();
+    this.context.closePath();
+  }
+  
+  drawCircle(circle: Circle): void {
+    this.context.beginPath();
+    this.context.arc(circle.center.x, circle.center.y, circle.radius, 0, 2 * Math.PI);
+    this.context.strokeStyle = circle.color;
+    this.context.lineWidth = this.lineWidth;
+    this.context.stroke();
+    this.context.closePath();
+  }
+  
+  drawDrawings(): void {
+    this.drawings.forEach((drawing) => {
+      this.drawDrawing(drawing);
+    });
+  }
+  
+  drawDrawing(drawing: Drawing): void {
+    switch(drawing.type) {
+      case 'hand_drawn_line':
+      this.drawHandDrawnLine(drawing);
+      break;
+      case 'line':
+      this.drawLine(drawing);
+      break;
+      case 'circle':
+      this.drawCircle(drawing);
+      break; 
+      case 'box':
+      this.drawBox(drawing);
+      break;
+    }
+  }
+  
+  drawHandDrawnLine(drawing: HandDrawnLine): void {
+    var p_point = {x: -1, y: -1, color: drawing.color};
+    drawing.points.forEach(point => {
+      if(p_point.x == -1 || p_point.y == -1) {
+        this.drawPoint(point);
+      } else {
+        this.drawLine({type: 'line', start: p_point, end: point, color: drawing.color});
+      }
+      p_point = {x: point.x, y: point.y, color: drawing.color};
+    });
+  }
+  
+  //-------------------------------
+  // Clearing / redrawing functions
+  //-------------------------------
+  resetCanvas(): void {
+    this.deleteDrawings();
+    this.clearCanvas();
+  }
+  
+  clearCanvas(): void {
+    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+  }
+  
+  deleteDrawings(): void {
+    this.drawings = Array<Drawing>();
+  }
+  
+  redrawCanvas(): void {
+    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.drawDrawings();
+  }
+  
+  erase(): void {
+    var toErase: Array<Drawing> = [];
+    this.drawings.forEach((drawing) => {
+      if(drawing.type == 'hand_drawn_line') {
+        for(var i = 0; i < drawing.points.length; i++) {
+          if(i == 0) {
+            continue;
+          } else if (this.__distanceBetweenLineAndPoint(this.currentPoint, drawing.points[i - 1], drawing.points[i]) <= 2) {
+            console.log('erase');
+            toErase.push(drawing);
+          }
+        }
+      } else if(drawing.type == 'box') {
+        var A: Point = drawing.start;
+        var B: Point = {x: drawing.start.x + drawing.width, y: drawing.start.y, color: drawing.color};
+        var C: Point = {x: drawing.start.x + drawing.width, y: drawing.start.y + drawing.height, color: drawing.color};
+        var D: Point = {x: drawing.start.x, y: drawing.start.y + drawing.height, color: drawing.color};
+        if(this.__distanceBetweenLineAndPoint(this.currentPoint, A, B) <= 2 ||
+           this.__distanceBetweenLineAndPoint(this.currentPoint, B, C) <= 2 ||
+           this.__distanceBetweenLineAndPoint(this.currentPoint, C, D) <= 2 ||
+           this.__distanceBetweenLineAndPoint(this.currentPoint, D, A) <= 2 ) {
+             console.log('erase');
+             toErase.push(drawing);
+           }
+      } else if (drawing.type == 'circle') {
+        if(Math.abs(Math.sqrt(this.__sqr(this.currentPoint.x - drawing.center.x) + this.__sqr(this.currentPoint.y - drawing.center.y)) - drawing.radius) <= 2) {
+          console.log('erase');
+          toErase.push(drawing);
+        }
+      } else if (drawing.type == 'line') {
+        if(this.__distanceBetweenLineAndPoint(this.currentPoint, drawing.start, drawing.end) <= 2) {
+          console.log('erase');
+          toErase.push(drawing);
+        }
+      }
+    });
+    this.drawings = this.drawings.filter((element) => { return !toErase.includes(element); });
+    this.redrawCanvas();
+  }
+  
+  // General Helper Functions ===================================================================
+  __distance(p1: Point, p2: Point): number {
+    return Math.sqrt((p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y));
+  }
+  
+  __distanceBetweenLineAndPoint(p: Point, p1: Point, p2: Point): number {
+    var A = p.x - p1.x;
+    var B = p.y - p1.y;
+    var C = p2.x - p1.x;
+    var D = p2.y - p1.y;
+    
+    var dot = A * C + B * D;
+    var len_sq = C * C + D * D;
+    var param = -1;
+    if (len_sq != 0) //in case of 0 length line
+    param = dot / len_sq;
+    
+    var xx, yy;
+    
+    if (param < 0) {
+      xx = p1.x;
+      yy = p1.y;
+    }
+    else if (param > 1) {
+      xx = p2.x;
+      yy = p2.y;
+    }
+    else {
+      xx = p1.x + param * C;
+      yy = p1.y + param * D;
+    }
+    
+    var dx = p.x - xx;
+    var dy = p.y - yy;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  __sqr(n: number): number {
+    return n * n;
+  }
+  
+  __getTableDialogRect(): DOMRect {
+    return this.canvas.getClientRects()[0];
+  }
 }
-*/
