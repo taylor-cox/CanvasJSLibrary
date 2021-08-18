@@ -3,12 +3,14 @@ interface Point {
   x: number;
   y: number;
   color: string;
+  lineWidth: number;
 }
 
 interface HandDrawnLine {
   type: 'hand_drawn_line';
   points: Array<Point>;
   color: string;
+  lineWidth: number;
 }
 
 interface Line {
@@ -16,6 +18,7 @@ interface Line {
   start: Point;
   end: Point;
   color: string;
+  lineWidth: number;
 }
 
 interface Circle {
@@ -23,6 +26,7 @@ interface Circle {
   center: Point;
   radius: number;
   color: string;
+  lineWidth: number;
 }
 
 interface Box {
@@ -31,6 +35,7 @@ interface Box {
   width: number;
   height: number;
   color: string;
+  lineWidth: number;
 }
 
 type Drawing = Box | Circle | Line | HandDrawnLine;
@@ -82,9 +87,9 @@ class DrawingCanvas {
     
     this.currentAction = 'draw';
     this.drawings = new Array<Drawing>();
-    this.currentPoint = {x: null, y: null, color: null};
-    this.lastPoint = {x: null, y: null, color: null};
-    this.currentDrawing = {points: Array<Point>(), type: null, color: null};
+    this.currentPoint = {x: null, y: null, color: null, lineWidth: this.lineWidth};
+    this.lastPoint = {x: null, y: null, color: null, lineWidth: this.lineWidth};
+    this.currentDrawing = {points: Array<Point>(), type: null, color: null, lineWidth: this.lineWidth};
     
     this.canvas.addEventListener("mousemove", (e) => this.findxy(e), false);
     this.canvas.addEventListener("mousedown", (e) => this.findxy(e), false);
@@ -156,8 +161,8 @@ class DrawingCanvas {
     newButton.id = 'drawing-canvas-button' + this._canvasID + '-' + funct;
     
     if(img != null) {
-      let buttonImg = document.createElement('img');
-      buttonImg.src = img;
+      let buttonImg = document.createElement('i');
+      img.split(' ').forEach((cls) => buttonImg.classList.add(cls));
       newButton.appendChild(buttonImg);
     }
     
@@ -220,7 +225,8 @@ class DrawingCanvas {
     }
   }
 
-  addSlider(side: string): void {
+  addLineWidthSlider(side: string): void {
+    let defaultLineWidth = 2;
     let sliderDiv = document.createElement('div');
     let newSlider = document.createElement('input');
     let sliderValue = document.createElement('p');
@@ -228,7 +234,8 @@ class DrawingCanvas {
     newSlider.id = 'drawing-canvas-button-' + this._canvasID + '-slider';
     newSlider.setAttribute('min', '1');
     newSlider.setAttribute('max', '10');
-    newSlider.setAttribute('value', '2');
+    newSlider.setAttribute('value', '' + defaultLineWidth);
+    this.lineWidth = defaultLineWidth;
     sliderValue.innerHTML = newSlider.value;
     newSlider.oninput = () => { 
       sliderValue.innerHTML = newSlider.value; 
@@ -255,8 +262,6 @@ class DrawingCanvas {
 
   }
   
-  // TODO: Allow users to create custom buttons; implicit functions, image, pass in button
-  
   // State Changing Functions ===================================================================
   setCurrentAction(funct: string) {
     this.currentAction = funct;
@@ -278,19 +283,19 @@ class DrawingCanvas {
       this.currentPoint.y = Math.floor(e.clientY - this.__getTableDialogRect().y);
       let color: string = (document.getElementById('drawing-canvas-button-' + this._canvasID + '-color-wheel') as HTMLInputElement).value;
       this.currentPoint.color = color;
-      this.lastPoint = {x: this.currentPoint.x, y: this.currentPoint.y, color: (document.getElementById('drawing-canvas-button-' + this._canvasID + '-color-wheel') as HTMLInputElement).value};
+      this.lastPoint = {x: this.currentPoint.x, y: this.currentPoint.y, color: (document.getElementById('drawing-canvas-button-' + this._canvasID + '-color-wheel') as HTMLInputElement).value, lineWidth: this.lineWidth};
       this.mouseDownFlag = true;
       
       if(this.currentAction == 'draw') {
-        this.currentDrawing = {type: 'hand_drawn_line', points: Array<Point>(), color: color} as HandDrawnLine;
+        this.currentDrawing = {type: 'hand_drawn_line', points: Array<Point>(), color: color, lineWidth: this.lineWidth.valueOf()} as HandDrawnLine;
         (this.currentDrawing as HandDrawnLine).points.push(JSON.parse(JSON.stringify(this.currentPoint)));
-        this.drawPoint(this.currentPoint);
+        this.drawCircle({type: 'circle', center: this.currentPoint, radius: (this.lineWidth / 10), color: color, lineWidth: this.lineWidth.valueOf()});
       } else if(this.currentAction == 'line') {
-        this.currentDrawing = {type: 'line', start: JSON.parse(JSON.stringify(this.currentPoint)), end: undefined, color: color} as Line;
+        this.currentDrawing = {type: 'line', start: JSON.parse(JSON.stringify(this.currentPoint)), end: undefined, color: color, lineWidth: this.lineWidth.valueOf()} as Line;
       } else if (this.currentAction == 'circle') {
-        this.currentDrawing = {type: 'circle', center: JSON.parse(JSON.stringify(this.currentPoint)), radius: undefined, color: color} as Circle;
+        this.currentDrawing = {type: 'circle', center: JSON.parse(JSON.stringify(this.currentPoint)), radius: undefined, color: color, lineWidth: this.lineWidth.valueOf()} as Circle;
       } else if (this.currentAction == 'box') {
-        this.currentDrawing = {type: 'box', start: JSON.parse(JSON.stringify(this.currentPoint)), width: undefined, height: undefined, color: color} as Box;
+        this.currentDrawing = {type: 'box', start: JSON.parse(JSON.stringify(this.currentPoint)), width: undefined, height: undefined, color: color, lineWidth: this.lineWidth.valueOf()} as Box;
       } else if (this.currentAction == 'erase') {
         this.erase();
       }
@@ -312,7 +317,7 @@ class DrawingCanvas {
       if (this.mouseDownFlag) {
         if(this.currentAction == 'draw') { 
           (this.currentDrawing as HandDrawnLine).points.push(JSON.parse(JSON.stringify(this.currentPoint)));
-          this.drawLine({type: 'line', start: this.lastPoint, end: this.currentPoint, color: this.currentDrawing.color}); 
+          this.drawLine({type: 'line', start: this.lastPoint, end: this.currentPoint, color: this.currentDrawing.color, lineWidth: this.lineWidth}); 
         } else if(this.currentAction == 'erase') { 
           this.erase();
         } else if(this.currentAction == 'line') {
@@ -340,7 +345,7 @@ class DrawingCanvas {
   drawPoint(point: Point): void {
     this.context.beginPath();
     this.context.fillStyle = point.color;
-    this.context.fillRect(point.x, point.y, this.lineWidth, this.lineWidth);
+    this.context.fillRect(point.x, point.y, this.lineWidth, point.lineWidth);
     this.context.closePath();
   }
   
@@ -351,7 +356,7 @@ class DrawingCanvas {
     this.context.moveTo(line.start.x, line.start.y);
     this.context.lineTo(line.end.x, line.end.y);
     this.context.strokeStyle = line.color;
-    this.context.lineWidth = this.lineWidth;
+    this.context.lineWidth = line.lineWidth;
     this.context.stroke();
     this.context.closePath();
   }
@@ -360,7 +365,7 @@ class DrawingCanvas {
     this.context.beginPath();
     this.context.rect(box.start.x, box.start.y, box.width, box.height);
     this.context.strokeStyle = box.color;
-    this.context.lineWidth = this.lineWidth;
+    this.context.lineWidth = box.lineWidth;
     this.context.stroke();
     this.context.closePath();
   }
@@ -369,7 +374,7 @@ class DrawingCanvas {
     this.context.beginPath();
     this.context.arc(circle.center.x, circle.center.y, circle.radius, 0, 2 * Math.PI);
     this.context.strokeStyle = circle.color;
-    this.context.lineWidth = this.lineWidth;
+    this.context.lineWidth = circle.lineWidth;
     this.context.stroke();
     this.context.closePath();
   }
@@ -398,14 +403,14 @@ class DrawingCanvas {
   }
   
   drawHandDrawnLine(drawing: HandDrawnLine): void {
-    var p_point = {x: -1, y: -1, color: drawing.color};
+    var p_point = {x: -1, y: -1, color: drawing.color, lineWidth: drawing.lineWidth};
     drawing.points.forEach(point => {
       if(p_point.x == -1 || p_point.y == -1) {
-        this.drawPoint(point);
+        this.drawCircle({type: 'circle', center: point, radius: (this.lineWidth / 10), color: drawing.color, lineWidth: drawing.lineWidth});
       } else {
-        this.drawLine({type: 'line', start: p_point, end: point, color: drawing.color});
+        this.drawLine({type: 'line', start: p_point, end: point, color: drawing.color, lineWidth: drawing.lineWidth});
       }
-      p_point = {x: point.x, y: point.y, color: drawing.color};
+      p_point = {x: point.x, y: point.y, color: drawing.color, lineWidth: drawing.lineWidth};
     });
   }
   
@@ -437,30 +442,30 @@ class DrawingCanvas {
         for(var i = 0; i < drawing.points.length; i++) {
           if(i == 0) {
             continue;
-          } else if (this.__distanceBetweenLineAndPoint(this.currentPoint, drawing.points[i - 1], drawing.points[i]) <= 2) {
+          } else if (this.__distanceBetweenLineAndPoint(this.currentPoint, drawing.points[i - 1], drawing.points[i]) <= drawing.lineWidth) {
             console.log('erase');
             toErase.push(drawing);
           }
         }
       } else if(drawing.type == 'box') {
         var A: Point = drawing.start;
-        var B: Point = {x: drawing.start.x + drawing.width, y: drawing.start.y, color: drawing.color};
-        var C: Point = {x: drawing.start.x + drawing.width, y: drawing.start.y + drawing.height, color: drawing.color};
-        var D: Point = {x: drawing.start.x, y: drawing.start.y + drawing.height, color: drawing.color};
-        if(this.__distanceBetweenLineAndPoint(this.currentPoint, A, B) <= 2 ||
-           this.__distanceBetweenLineAndPoint(this.currentPoint, B, C) <= 2 ||
-           this.__distanceBetweenLineAndPoint(this.currentPoint, C, D) <= 2 ||
-           this.__distanceBetweenLineAndPoint(this.currentPoint, D, A) <= 2 ) {
+        var B: Point = {x: drawing.start.x + drawing.width, y: drawing.start.y, color: drawing.color, lineWidth: this.lineWidth};
+        var C: Point = {x: drawing.start.x + drawing.width, y: drawing.start.y + drawing.height, color: drawing.color, lineWidth: this.lineWidth};
+        var D: Point = {x: drawing.start.x, y: drawing.start.y + drawing.height, color: drawing.color, lineWidth: this.lineWidth};
+        if(this.__distanceBetweenLineAndPoint(this.currentPoint, A, B) <= drawing.lineWidth ||
+           this.__distanceBetweenLineAndPoint(this.currentPoint, B, C) <= drawing.lineWidth ||
+           this.__distanceBetweenLineAndPoint(this.currentPoint, C, D) <= drawing.lineWidth ||
+           this.__distanceBetweenLineAndPoint(this.currentPoint, D, A) <= drawing.lineWidth ) {
              console.log('erase');
              toErase.push(drawing);
            }
       } else if (drawing.type == 'circle') {
-        if(Math.abs(Math.sqrt(this.__sqr(this.currentPoint.x - drawing.center.x) + this.__sqr(this.currentPoint.y - drawing.center.y)) - drawing.radius) <= 2) {
+        if(Math.abs(Math.sqrt(this.__sqr(this.currentPoint.x - drawing.center.x) + this.__sqr(this.currentPoint.y - drawing.center.y)) - drawing.radius) <= drawing.lineWidth) {
           console.log('erase');
           toErase.push(drawing);
         }
       } else if (drawing.type == 'line') {
-        if(this.__distanceBetweenLineAndPoint(this.currentPoint, drawing.start, drawing.end) <= 2) {
+        if(this.__distanceBetweenLineAndPoint(this.currentPoint, drawing.start, drawing.end) <= drawing.lineWidth) {
           console.log('erase');
           toErase.push(drawing);
         }
