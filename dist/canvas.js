@@ -89,9 +89,11 @@ var DrawingCanvas = /** @class */ (function () {
             newButton.onclick = function () { return _this.setCurrentAction(funct); };
         newButton.id = 'drawing-canvas-button' + this._canvasID + '-' + funct;
         if (img != null) {
-            var buttonImg_1 = document.createElement('i');
-            img.split(' ').forEach(function (cls) { return buttonImg_1.classList.add(cls); });
-            newButton.appendChild(buttonImg_1);
+            // let buttonImg = document.createElement('i');
+            // img.split(' ').forEach((cls) => buttonImg.classList.add(cls));
+            var buttonImg = document.createElement('img');
+            buttonImg.src = img;
+            newButton.appendChild(buttonImg);
         }
         switch (side) {
             case 'top':

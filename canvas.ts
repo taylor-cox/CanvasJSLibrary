@@ -161,8 +161,11 @@ class DrawingCanvas {
     newButton.id = 'drawing-canvas-button' + this._canvasID + '-' + funct;
     
     if(img != null) {
-      let buttonImg = document.createElement('i');
-      img.split(' ').forEach((cls) => buttonImg.classList.add(cls));
+      // let buttonImg = document.createElement('i');
+      // img.split(' ').forEach((cls) => buttonImg.classList.add(cls));
+      
+      let buttonImg = document.createElement('img');
+      buttonImg.src = img;
       newButton.appendChild(buttonImg);
     }
     
