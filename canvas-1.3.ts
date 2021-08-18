@@ -185,7 +185,7 @@ class DrawingCanvas {
     }
   }
 
-  addDownloadButton(side: string) {
+  addDownloadButton(side: string, img: string) {
     let validSides = ['top', 'bottom', 'left', 'right'];
     if(!validSides.includes(side)) {
       throw 'addButton not given valid side; sides are' + validSides;
@@ -199,6 +199,15 @@ class DrawingCanvas {
       link.href = downloadFile;
       link.click();
     };
+    
+    if(img != null) {
+      let buttonImg = document.createElement('i');
+      img.split(' ').forEach((cls) => buttonImg.classList.add(cls));
+      
+      // let buttonImg = document.createElement('img');
+      // buttonImg.src = img;
+      newButton.appendChild(buttonImg);
+    }
     
     switch(side) {
       case 'top':
