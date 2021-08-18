@@ -185,6 +185,37 @@ class DrawingCanvas {
     }
   }
 
+  addDownloadButton(side: string) {
+    let validSides = ['top', 'bottom', 'left', 'right'];
+    if(!validSides.includes(side)) {
+      throw 'addButton not given valid side; sides are' + validSides;
+    }
+
+    let newButton = document.createElement('button');
+    newButton.onclick = () => {
+      var downloadFile = this.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+      var link = document.createElement('a');
+      link.download = 'canvas-drawing.png';
+      link.href = downloadFile;
+      link.click();
+    };
+    
+    switch(side) {
+      case 'top':
+      this.topToolbar.appendChild(newButton);
+      break;
+      case 'bottom':
+      this.bottomToolbar.appendChild(newButton);
+      break;
+      case 'left':
+      this.leftToolbar.appendChild(newButton);
+      break;
+      case 'right':
+      this.rightToolbar.appendChild(newButton);
+      break;
+    }
+  }
+
   addElementToToolbar(elem: HTMLElement, side: string) {
     let validSides = ['top', 'bottom', 'left', 'right'];
     if(!validSides.includes(side)) {
