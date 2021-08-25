@@ -6,14 +6,14 @@ function start() {
   drawingCanvas.setCanvasHeight(500);
   drawingCanvas.setCanvasWidth(500);
   drawingCanvas.addToolbar('bottom');
-  drawingCanvas.addToolbar('left');
-  drawingCanvas.addButton('draw', 'left', 'fa fa-pencil-alt');
-  drawingCanvas.addButton('line', 'left', 'fas fa-pencil-ruler');
-  drawingCanvas.addButton('circle', 'left', 'far fa-circle');
-  drawingCanvas.addButton('box', 'left', 'far fa-square');
-  drawingCanvas.addButton('erase', 'left', 'fas fa-eraser');
-  drawingCanvas.addButton('clear', 'left', 'far fa-window-close');
+  drawingCanvas.addButton('draw', 'bottom', 'fa fa-pencil-alt');
+  drawingCanvas.addButton('line', 'bottom', 'fas fa-pencil-ruler');
+  drawingCanvas.addButton('circle', 'bottom', 'far fa-circle');
+  drawingCanvas.addButton('box', 'bottom', 'far fa-square');
+  drawingCanvas.addButton('erase', 'bottom', 'fas fa-eraser');
+  drawingCanvas.addButton('clear', 'bottom', 'far fa-window-close');
+  drawingCanvas.addDownloadButton('bottom', 'fas fa-download');
   drawingCanvas.addColorWheel('bottom');
   drawingCanvas.addLineWidthSlider('bottom');
-  drawingCanvas.appendDrawingCanvasToElement(document.body);
+  drawingCanvas.appendDrawingCanvasToElement(document.body); // document.getElementById('drawing-canvas-0-bottom-toolbar').style.display = 'flex';
 }

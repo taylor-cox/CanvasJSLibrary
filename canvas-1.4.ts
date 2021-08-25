@@ -184,20 +184,23 @@ class DrawingCanvas {
       break;
     }
   }
-
+  
   addDownloadButton(side: string, img: string) {
     let validSides = ['top', 'bottom', 'left', 'right'];
     if(!validSides.includes(side)) {
       throw 'addButton not given valid side; sides are' + validSides;
     }
-
+    
     let newButton = document.createElement('button');
     newButton.onclick = () => {
-      var downloadFile = this.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
-      var link = document.createElement('a');
-      link.download = 'canvas-drawing.png';
-      link.href = downloadFile;
-      link.click();
+      var screenshotTarget = document.body;
+      html2canvas(screenshotTarget).then(function (canvas) {
+          var base64image = canvas.toDataURL("image/png");
+          let a = document.createElement('a');
+          a.href = base64image;
+          a.download = '';
+          a.click();
+      });
     };
     
     if(img != null) {
@@ -224,13 +227,13 @@ class DrawingCanvas {
       break;
     }
   }
-
+  
   addElementToToolbar(elem: HTMLElement, side: string) {
     let validSides = ['top', 'bottom', 'left', 'right'];
     if(!validSides.includes(side)) {
       throw 'addButton not given valid side; sides are' + validSides;
     }
-
+    
     switch(side) {
       case 'top':
       this.topToolbar.appendChild(elem);
@@ -267,10 +270,13 @@ class DrawingCanvas {
       break;
     }
   }
-
+  
   addLineWidthSlider(side: string): void {
     let defaultLineWidth = 2;
     let sliderDiv = document.createElement('div');
+    sliderDiv.style.display = 'flex';
+    sliderDiv.style.flexDirection = 'column';
+    sliderDiv.style.alignItems = 'center';
     let newSlider = document.createElement('input');
     let sliderValue = document.createElement('p');
     newSlider.setAttribute('type', 'range');
@@ -284,7 +290,7 @@ class DrawingCanvas {
       sliderValue.innerHTML = newSlider.value; 
       this.lineWidth = +newSlider.value;
     };
-
+    
     sliderDiv.appendChild(newSlider);
     sliderDiv.appendChild(sliderValue);
     
@@ -302,7 +308,7 @@ class DrawingCanvas {
       this.rightToolbar.appendChild(sliderDiv);
       break;
     }
-
+    
   }
   
   // State Changing Functions ===================================================================
@@ -496,12 +502,12 @@ class DrawingCanvas {
         var C: Point = {x: drawing.start.x + drawing.width, y: drawing.start.y + drawing.height, color: drawing.color, lineWidth: this.lineWidth};
         var D: Point = {x: drawing.start.x, y: drawing.start.y + drawing.height, color: drawing.color, lineWidth: this.lineWidth};
         if(this.__distanceBetweenLineAndPoint(this.currentPoint, A, B) <= drawing.lineWidth ||
-           this.__distanceBetweenLineAndPoint(this.currentPoint, B, C) <= drawing.lineWidth ||
-           this.__distanceBetweenLineAndPoint(this.currentPoint, C, D) <= drawing.lineWidth ||
-           this.__distanceBetweenLineAndPoint(this.currentPoint, D, A) <= drawing.lineWidth ) {
-             console.log('erase');
-             toErase.push(drawing);
-           }
+        this.__distanceBetweenLineAndPoint(this.currentPoint, B, C) <= drawing.lineWidth ||
+        this.__distanceBetweenLineAndPoint(this.currentPoint, C, D) <= drawing.lineWidth ||
+        this.__distanceBetweenLineAndPoint(this.currentPoint, D, A) <= drawing.lineWidth ) {
+          console.log('erase');
+          toErase.push(drawing);
+        }
       } else if (drawing.type == 'circle') {
         if(Math.abs(Math.sqrt(this.__sqr(this.currentPoint.x - drawing.center.x) + this.__sqr(this.currentPoint.y - drawing.center.y)) - drawing.radius) <= drawing.lineWidth) {
           console.log('erase');
@@ -554,7 +560,7 @@ class DrawingCanvas {
     var dy = p.y - yy;
     return Math.sqrt(dx * dx + dy * dy);
   }
-
+  
   __sqr(n: number): number {
     return n * n;
   }
