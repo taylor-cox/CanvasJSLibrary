@@ -15,5 +15,5 @@ function start() {
   drawingCanvas.addDownloadButton('bottom', 'fas fa-download');
   drawingCanvas.addColorWheel('bottom');
   drawingCanvas.addLineWidthSlider('bottom');
-  drawingCanvas.appendDrawingCanvasToElement(document.body); // document.getElementById('drawing-canvas-0-bottom-toolbar').style.display = 'flex';
+  drawingCanvas.appendDrawingCanvasToElement(document.body);
 }

@@ -111,21 +111,24 @@ var DrawingCanvas = /** @class */ (function () {
         }
     };
     DrawingCanvas.prototype.addDownloadButton = function (side, img) {
+        var _this = this;
         var validSides = ['top', 'bottom', 'left', 'right'];
         if (!validSides.includes(side)) {
             throw 'addButton not given valid side; sides are' + validSides;
         }
         var newButton = document.createElement('button');
         newButton.onclick = function () {
-            var screenshotTarget = document.body;
+            var screenshotTarget = _this.canvas;
             html2canvas(screenshotTarget).then(function (canvas) {
-                this.bottomToolbar.style.visibility = 'hidden';
+                _this.bottomToolbar.style.visibility = 'hidden';
+                // canvas.width = this.canvas.width;
+                // canvas.height = this.canvas.height;
                 var base64image = canvas.toDataURL("image/png");
                 var a = document.createElement('a');
                 a.href = base64image;
                 a.download = '';
                 a.click();
-                this.bottomToolbar.style.visibility = 'visible';
+                _this.bottomToolbar.style.visibility = 'visible';
             });
         };
         if (img != null) {

@@ -193,13 +193,17 @@ class DrawingCanvas {
     
     let newButton = document.createElement('button');
     newButton.onclick = () => {
-      var screenshotTarget = document.body;
-      html2canvas(screenshotTarget).then(function (canvas) {
-          var base64image = canvas.toDataURL("image/png");
-          let a = document.createElement('a');
-          a.href = base64image;
-          a.download = '';
-          a.click();
+      var screenshotTarget = this.canvas;
+      html2canvas(screenshotTarget).then((canvas) => {
+        this.bottomToolbar.style.visibility = 'hidden';
+        // canvas.width = this.canvas.width;
+        // canvas.height = this.canvas.height;
+        var base64image = canvas.toDataURL("image/png");
+        let a = document.createElement('a');
+        a.href = base64image;
+        a.download = '';
+        a.click();
+        this.bottomToolbar.style.visibility = 'visible';
       });
     };
     

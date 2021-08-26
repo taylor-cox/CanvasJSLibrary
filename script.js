@@ -14,5 +14,4 @@ function start() {
     drawingCanvas.addColorWheel('bottom');
     drawingCanvas.addLineWidthSlider('bottom');
     drawingCanvas.appendDrawingCanvasToElement(document.body);
-    // document.getElementById('drawing-canvas-0-bottom-toolbar').style.display = 'flex';
 }
