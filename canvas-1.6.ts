@@ -193,7 +193,7 @@ class DrawingCanvas {
     
     let newButton = document.createElement('button');
     newButton.onclick = () => {
-      var screenshotTarget = this.canvas;
+      var screenshotTarget = document.body;
       html2canvas(screenshotTarget).then((canvas) => {
         this.bottomToolbar.style.visibility = 'hidden';
         // canvas.width = this.canvas.width;
